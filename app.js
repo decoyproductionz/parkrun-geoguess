@@ -320,6 +320,13 @@ function nextRound() {
   document.getElementById("prompt-hint").textContent = "Click the map, then confirm with \u201cGuess\u201d.";
   document.getElementById("feedback").classList.add("hidden");
 
+  const info = currentEvent._eventInfo;
+
+  const photoBox = document.getElementById("prompt-photo");
+  photoBox.innerHTML = info && info.photoUrl
+    ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
+    : '<div class="photo-empty">No photo available for this location.</div>';
+
   const statsBox = document.getElementById("prompt-stats");
   const stats = info && info.stats;
   statsBox.innerHTML = stats
