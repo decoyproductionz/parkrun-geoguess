@@ -23,6 +23,37 @@ const MAP_ZOOM = 5;
 const INK_DOT = "#2B3A4A";
 const TRAIL_GREEN = "#2F6B4F";
 
+// Maps a parkrun country "domain" (from the events.json countries block) to a
+// display name. Not exhaustive — falls back to showing the raw domain for
+// any country not listed here, so nothing breaks if parkrun adds a new one.
+const COUNTRY_NAMES = {
+  "parkrun.org.uk": "United Kingdom",
+  "parkrun.ie": "Ireland",
+  "parkrun.com.au": "Australia",
+  "parkrun.co.nz": "New Zealand",
+  "parkrun.co.za": "South Africa",
+  "parkrun.us": "United States",
+  "parkrun.ca": "Canada",
+  "parkrun.com.de": "Germany",
+  "parkrun.co.at": "Austria",
+  "parkrun.dk": "Denmark",
+  "parkrun.fi": "Finland",
+  "parkrun.fr": "France",
+  "parkrun.it": "Italy",
+  "parkrun.pl": "Poland",
+  "parkrun.lt": "Lithuania",
+  "parkrun.my": "Malaysia",
+  "parkrun.sg": "Singapore",
+  "parkrun.no": "Norway",
+  "parkrun.se": "Sweden",
+  "parkrun.com.na": "Namibia",
+  "parkrun.co.zw": "Zimbabwe",
+  "parkrun.jp": "Japan",
+  "parkrun.nl": "Netherlands",
+  "parkrun.si": "Slovenia",
+  "parkrun.ru": "Russia"
+};
+
 let allEvents = [];
 let queue = [];
 let currentIndex = 0;
