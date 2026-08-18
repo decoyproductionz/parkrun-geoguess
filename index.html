@@ -3,13 +3,45 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-B24QDRL8J2"></script>
+<!-- Google Analytics — only loads after the person accepts the cookie banner below -->
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-B24QDRL8J2');
+  const GA_MEASUREMENT_ID = "G-B24QDRL8J2"; // replace with your real Measurement ID
+
+  function loadAnalytics() {
+    if (window.gaLoaded) return;
+    window.gaLoaded = true;
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ window.dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', GA_MEASUREMENT_ID);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const consent = localStorage.getItem("cookieConsent");
+    const banner = document.getElementById("cookie-consent");
+
+    if (consent === "accepted") {
+      loadAnalytics();
+    } else if (consent !== "declined") {
+      banner.classList.remove("hidden");
+    }
+
+    document.getElementById("cookie-accept").addEventListener("click", () => {
+      localStorage.setItem("cookieConsent", "accepted");
+      banner.classList.add("hidden");
+      loadAnalytics();
+    });
+
+    document.getElementById("cookie-decline").addEventListener("click", () => {
+      localStorage.setItem("cookieConsent", "declined");
+      banner.classList.add("hidden");
+    });
+  });
 </script>
 <title>parkrun Geoguess – Daily Map Quiz</title>
 
@@ -86,6 +118,14 @@
       <button id="end-restart-btn" class="btn btn-secondary">Replay these 5</button>
       <button id="end-practice-btn" class="btn btn-primary">New practice pack</button>
     </div>
+  </div>
+</div>
+
+<div id="cookie-consent" class="cookie-consent hidden">
+  <p>This site uses Google Analytics to see how many people visit each day. Nothing loads unless you say yes, and no personal data is sold.</p>
+  <div class="cookie-consent-actions">
+    <button id="cookie-decline" class="btn btn-secondary">Decline</button>
+    <button id="cookie-accept" class="btn btn-primary">Accept</button>
   </div>
 </div>
 
