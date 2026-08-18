@@ -86,8 +86,7 @@ async function init() {
   document.getElementById("guess-btn").addEventListener("click", confirmGuess);
   document.getElementById("skip-btn").addEventListener("click", skipRound);
   document.getElementById("end-restart-btn").addEventListener("click", () => resetProgress());
-  document.getElementById("end-practice-btn").addEventListener("click", () => loadQueue("bonus"));
-
+  document.getElementById("end-practice-btn").addEventListener("click", () => loadQueue("practice"));
   await loadQueue("daily");
 }
 
@@ -255,7 +254,7 @@ function resetProgress() {
   document.getElementById("skip-btn").textContent = "Skip";
   document.getElementById("round-total").textContent = queue.length;
   document.getElementById("day-label").textContent =
-    quizMode === "practice" ? "`Practice pack \u00b7 a fresh random ${DAILY_COUNT}`" : "Today's set \u00b7 " + todayString();
+    quizMode === "practice" ? `Practice pack \u00b7 a fresh random ${DAILY_COUNT}` : "Today's set \u00b7 " + todayString();
   buildStampTrail();
   nextRound();
 }
@@ -323,13 +322,15 @@ function nextRound() {
 
   const photoBox = document.getElementById("prompt-photo");
   const mapBox = document.getElementById("prompt-map");
+  const info = currentEvent._eventInfo;
+
+  photoBox.innerHTML = info && info.photoUrl
+    ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
+    : '<div class="photo-empty">No photo available for this location.</div>';
+
   mapBox.innerHTML = info && info.mapEmbedUrl
     ? `<iframe class="prompt-map-frame" src="${info.mapEmbedUrl}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Course map for this parkrun"></iframe>`
     : '<div class="photo-empty">No course map available for this location.</div>';
-  const info = currentEvent._eventInfo;
-  photoBox.innerHTML = info && info.photoUrl
-    ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
-    : '<div class="photo-empty">No photo available for this location.</div>'; 
 }
 
 function skipRound() {
