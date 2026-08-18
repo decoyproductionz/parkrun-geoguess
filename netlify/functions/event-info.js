@@ -37,11 +37,13 @@ export default async (req) => {
 
   const homeUrl = `https://${domain}/${encodeURIComponent(slug)}/`;
   const courseUrl = `https://${domain}/${encodeURIComponent(slug)}/course/`;
+  const historyUrl = `https://${domain}/${encodeURIComponent(slug)}/results/eventhistory/`;
 
   try {
-    const [homeRes, courseRes] = await Promise.allSettled([
+    const [homeRes, courseRes, historyRes] = await Promise.allSettled([
       fetch(homeUrl, { headers: { "User-Agent": USER_AGENT } }),
-      fetch(courseUrl, { headers: { "User-Agent": USER_AGENT } })
+      fetch(courseUrl, { headers: { "User-Agent": USER_AGENT } }),
+      fetch(historyUrl, { headers: { "User-Agent": USER_AGENT } })
     ]);
 
     let photoUrl = null;
@@ -51,18 +53,21 @@ export default async (req) => {
     }
 
     let description = null;
-    let mapEmbedUrl = null;
     if (courseRes.status === "fulfilled" && courseRes.value.ok) {
       const courseHtml = await courseRes.value.text();
       description = extractDescription(courseHtml);
-      mapEmbedUrl = extractMapEmbed(courseHtml);
+    }
+
+    let stats = null;
+    if (historyRes.status === "fulfilled" && historyRes.value.ok) {
+      const historyHtml = await historyRes.value.text();
+      stats = extractEventStats(historyHtml);
     }
 
     return new Response(
-      JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, photoUrl, description, mapEmbedUrl }),
+      JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, historyUrl, photoUrl, description, stats }),
       {
         status: 200,
-        // Event pages change rarely — cache for 12h to keep this fast and cheap.
         headers: { ...CORS_HEADERS, "Cache-Control": "public, max-age=43200" }
       }
     );
@@ -149,8 +154,65 @@ function truncate(str, maxLen) {
 //   <iframe src="https://www.google.com/maps/d/embed?mid=XXXX&..."></iframe>
 // This URL pattern is the same across every parkrun locale, since it's a
 // fixed Google embed link rather than translated page text.
-function extractMapEmbed(html) {
-  const match = html.match(/https:\/\/(?:www\.)?google\.com\/maps\/d\/(?:u\/\d+\/)?embed\?[^"'<>\s]+/i);
-  if (!match) return null;
-  return match[0].replace(/&amp;/g, "&");
+// Best-effort: parkrun's per-event history page lists one row per weekly
+// occurrence, typically with an event number, a date, and a finisher
+// count (and sometimes an average time). From that we derive first
+// edition, average finishers, and average time. I couldn't verify this
+// page's actual layout myself — this parses defensively via generic
+// patterns rather than assuming specific columns, and returns null
+// rather than guessing wrong if nothing matches.
+function extractEventStats(html) {
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+  const events = [];
+
+  for (const rowMatch of rows) {
+    const cells = [...rowMatch[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(m => stripTags(m[1]));
+    if (cells.length < 3) continue;
+
+    const eventNum = parseInt((cells[0] || "").replace(/[^\d]/g, ""), 10);
+    if (!Number.isFinite(eventNum)) continue;
+
+    const dateCell = cells.find(c => /\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}/.test(c));
+    const finisherCell = cells.find(c => /^\d{1,4}$/.test(c.trim()));
+    const timeCell = cells.find(c => /^\d{1,2}:\d{2}(:\d{2})?$/.test(c.trim()));
+
+    events.push({
+      eventNum,
+      date: dateCell || null,
+      finishers: finisherCell ? parseInt(finisherCell, 10) : null,
+      timeStr: timeCell || null
+    });
+  }
+
+  if (events.length === 0) return null;
+
+  events.sort((a, b) => a.eventNum - b.eventNum);
+  const first = events[0];
+
+  const finisherCounts = events.map(e => e.finishers).filter(n => Number.isFinite(n));
+  const avgFinishers = finisherCounts.length
+    ? Math.round(finisherCounts.reduce((a, b) => a + b, 0) / finisherCounts.length)
+    : null;
+
+  const timeSeconds = events.map(e => parseTimeToSeconds(e.timeStr)).filter(n => n !== null);
+  const avgTime = timeSeconds.length
+    ? secondsToTimeStr(Math.round(timeSeconds.reduce((a, b) => a + b, 0) / timeSeconds.length))
+    : null;
+
+  return { firstEdition: first.date, totalEvents: events.length, avgFinishers, avgTime };
+}
+
+function parseTimeToSeconds(str) {
+  if (!str) return null;
+  const parts = str.split(":").map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+function secondsToTimeStr(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }

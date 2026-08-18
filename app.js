@@ -265,7 +265,7 @@ function showBuildingState(mode) {
   document.getElementById("prompt-country").textContent = "";
   document.getElementById("prompt-hint").textContent = "Checking which ones have a photo available.";
   document.getElementById("prompt-photo").innerHTML = '<div class="photo-loading">\u2026</div>';
-  document.getElementById("prompt-map").innerHTML = "";
+  document.getElementById("prompt-stats").innerHTML = "";
   document.getElementById("feedback").classList.add("hidden");
   setGuessButtonEnabled(false);
   document.getElementById("skip-btn").disabled = true;
@@ -320,17 +320,15 @@ function nextRound() {
   document.getElementById("prompt-hint").textContent = "Click the map, then confirm with \u201cGuess\u201d.";
   document.getElementById("feedback").classList.add("hidden");
 
-  const photoBox = document.getElementById("prompt-photo");
-  const mapBox = document.getElementById("prompt-map");
-  const info = currentEvent._eventInfo;
-
-  photoBox.innerHTML = info && info.photoUrl
-    ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
-    : '<div class="photo-empty">No photo available for this location.</div>';
-
-  mapBox.innerHTML = info && info.mapEmbedUrl
-    ? `<iframe class="prompt-map-frame" src="${info.mapEmbedUrl}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Course map for this parkrun"></iframe>`
-    : '<div class="photo-empty">No course map available for this location.</div>';
+  const statsBox = document.getElementById("prompt-stats");
+  const stats = info && info.stats;
+  statsBox.innerHTML = stats
+    ? `
+      <div class="stat-chip"><span class="stat-value">${escapeHtml(stats.firstEdition || "\u2013")}</span><span class="stat-label">First edition</span></div>
+      <div class="stat-chip"><span class="stat-value">${stats.avgFinishers ?? "\u2013"}</span><span class="stat-label">Avg. finishers</span></div>
+      <div class="stat-chip"><span class="stat-value">${escapeHtml(stats.avgTime || "\u2013")}</span><span class="stat-label">Avg. time</span></div>
+    `
+    : '<div class="photo-empty">No stats available for this location.</div>';
 }
 
 function skipRound() {
@@ -490,7 +488,7 @@ async function loadEventInfo(event) {
 
   box.innerHTML = `${descHtml}${linkHtml}`;
 }
-const EVENT_INFO_VERSION = "v2"; // bump this if event-info.js's response shape ever changes, to bust stale caches
+const EVENT_INFO_VERSION = "v3"; // bump this if event-info.js's response shape ever changes, to bust stale caches
 
   async function fetchEventInfo(ev) {
     if (!ev.domain || !ev.slug) return null;
