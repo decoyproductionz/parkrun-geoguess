@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>parkrun World – Daily Map Quiz</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="badge" aria-hidden="true">5K</div>
+  <h1>parkrun World <span class="subtitle">Daily Quiz</span></h1>
+  <p class="tagline">Eight parks. One planet. Guess where.</p>
+  <p class="day-label" id="day-label"></p>
+</header>
+
+<main class="app-main">
+
+  <section class="quiz-panel">
+    <div class="stamp-trail" id="stamp-trail" aria-label="Round progress"></div>
+
+    <div id="prompt-card" class="prompt-card">
+      <div class="prompt-label">Round <span id="round-number">1</span> / <span id="round-total">8</span></div>
+      <div class="prompt-name" id="prompt-name">Loading today's parkruns…</div>
+      <div class="prompt-country" id="prompt-country"></div>
+      <div class="prompt-photo" id="prompt-photo"></div>
+      <div class="prompt-hint" id="prompt-hint"></div>
+    </div>
+
+    <div class="score-row">
+      <div class="score-box">
+        <div class="score-value" id="score-value">0</div>
+        <div class="score-label">Points</div>
+      </div>
+      <div class="score-box">
+        <div class="score-value" id="avg-distance">–</div>
+        <div class="score-label">Avg. distance</div>
+      </div>
+      <div class="score-box">
+        <div class="score-value" id="streak-value">0</div>
+        <div class="score-label">Streak</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="guess-btn" class="btn btn-primary" disabled>Guess</button>
+      <button id="skip-btn" class="btn btn-secondary">Skip</button>
+    </div>
+
+    <div id="feedback" class="feedback hidden"></div>
+  </section>
+
+  <section class="map-panel">
+    <div id="map"></div>
+  </section>
+
+</main>
+
+<footer class="bottom-bar">
+  <span class="bottom-bar-label">Total score</span>
+  <span class="bottom-bar-value" id="bottom-total">0</span>
+</footer>
+
+<div id="end-screen" class="end-screen hidden">
+  <div class="end-card">
+    <h2>Today's quiz is done! 🎉</h2>
+    <p id="end-summary"></p>
+    <p class="end-note">Come back tomorrow for 8 new locations — or keep going right now.</p>
+    <div class="end-actions">
+      <button id="end-restart-btn" class="btn btn-secondary">Replay these 8</button>
+      <button id="end-bonus-btn" class="btn btn-primary">Play 8 more</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

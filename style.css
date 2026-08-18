@@ -1,0 +1,522 @@
+:root {
+  /* ---- Trail Passport palette ---- */
+  --ink: #24312B;          /* primary text, deep forest ink */
+  --parchment: #F4EEDF;    /* page background, warm paper */
+  --card: #FFFDF6;         /* card surface, warm off-white */
+  --trail: #2F6B4F;        /* primary accent — forest green */
+  --trail-dark: #1F4934;
+  --ember: #B9541D;        /* secondary accent — trail-blaze rust */
+  --gold: #C89B3C;         /* signature accent — passport-stamp gold */
+  --muted: #746C5B;        /* warm secondary text */
+  --border: #E3D9BF;       /* warm hairline border */
+  --radius: 14px;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--parchment);
+  color: var(--ink);
+  padding-bottom: 64px;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(47,107,79,0.06), transparent 40%),
+    radial-gradient(circle at 88% 92%, rgba(184,84,29,0.05), transparent 40%);
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  padding: 28px 24px 14px;
+  text-align: center;
+  position: relative;
+}
+
+.badge {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 2px dashed var(--gold);
+  color: var(--trail-dark);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  background: var(--card);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+  color: var(--trail-dark);
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 1rem;
+  display: block;
+  margin-top: 2px;
+}
+
+.tagline {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+.day-label {
+  margin: 8px 0 0;
+  color: var(--ember);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------- Layout ---------- */
+
+.app-main {
+  display: flex;
+  gap: 20px;
+  padding: 16px 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.quiz-panel {
+  flex: 1 1 320px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.map-panel {
+  flex: 2 1 500px;
+  min-width: 300px;
+}
+
+#map {
+  width: 100%;
+  height: 70vh;
+  min-height: 420px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(36,49,43,0.08);
+}
+
+#map,
+#map .leaflet-container,
+#map .leaflet-grab,
+#map .leaflet-interactive,
+#map.leaflet-dragging .leaflet-container {
+  cursor: crosshair !important;
+}
+
+/* ---------- Stamp trail (signature progress element) ---------- */
+
+.stamp-trail {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 0 2px;
+}
+
+.stamp {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--card);
+  transition: all 0.25s ease;
+}
+
+.stamp.active {
+  border-color: var(--trail);
+  box-shadow: 0 0 0 3px rgba(47,107,79,0.15);
+  transform: scale(1.1);
+}
+
+.stamp.done-gold {
+  border-color: var(--gold);
+  background: var(--gold);
+  box-shadow: inset 0 0 0 2px var(--card);
+  animation: stamp-pop 0.35s ease;
+}
+
+.stamp.done-close {
+  border-color: var(--trail);
+  background: var(--trail);
+  box-shadow: inset 0 0 0 2px var(--card);
+  animation: stamp-pop 0.35s ease;
+}
+
+.stamp.done-far {
+  border-color: var(--muted);
+  background: var(--border);
+  animation: stamp-pop 0.35s ease;
+}
+
+@keyframes stamp-pop {
+  0% { transform: scale(0.7); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Prompt card ---------- */
+
+.prompt-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(36,49,43,0.06);
+}
+
+.prompt-label {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.prompt-name {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: var(--trail-dark);
+  line-height: 1.25;
+}
+
+.prompt-country {
+  margin-top: 4px;
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.prompt-hint {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  min-height: 1.2em;
+}
+
+.prompt-photo {
+  margin-top: 14px;
+}
+
+.prompt-photo img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  border: 1px solid var(--border);
+}
+
+.prompt-photo .photo-loading,
+.prompt-photo .photo-empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+  padding: 14px 0;
+}
+
+/* ---------- Score row ---------- */
+
+.score-row {
+  display: flex;
+  gap: 10px;
+}
+
+.score-box {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.score-value {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--trail-dark);
+}
+
+.score-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- Buttons ---------- */
+
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+.end-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: var(--radius);
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.btn:hover { opacity: 0.88; }
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--trail);
+  color: var(--card);
+}
+
+.btn-secondary {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn:disabled:hover { opacity: 0.4; }
+
+/* ---------- Feedback & enrichment ---------- */
+
+.feedback {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.feedback.correct-close { border-left: 4px solid var(--trail); }
+.feedback.correct-ok { border-left: 4px solid var(--gold); }
+.feedback.correct-far { border-left: 4px solid var(--ember); }
+
+.feedback .fb-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+  color: var(--trail-dark);
+}
+
+.feedback .fb-points {
+  font-family: var(--font-mono);
+  color: var(--trail-dark);
+  font-weight: 600;
+}
+
+.enrichment {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.enrichment img {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--parchment);
+  border: 1px solid var(--border);
+}
+
+.enrichment-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.enrichment-text a {
+  color: var(--trail-dark);
+}
+
+.enrichment.loading, .enrichment.empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.event-info {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.event-info.loading, .event-info.empty {
+  font-style: italic;
+}
+
+.event-photo {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.course-desc {
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.event-info a {
+  color: var(--trail-dark);
+}
+
+.hidden { display: none !important; }
+
+.error-banner {
+  max-width: 600px;
+  margin: 40px auto;
+  background: #FBEDE6;
+  border: 1px solid #E7C3AE;
+  color: #7A3416;
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+
+.error-banner code {
+  background: rgba(122,52,22,0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* ---------- End screen ---------- */
+
+.end-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(36, 49, 43, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.end-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(36,49,43,0.2);
+}
+
+.end-card h2 {
+  margin-top: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--trail-dark);
+}
+
+.end-card p {
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.end-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------- Bottom bar ---------- */
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--trail-dark);
+  color: var(--card);
+  padding: 12px 24px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  z-index: 900;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+}
+
+.bottom-bar-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+
+.bottom-bar-value {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .app-main { flex-direction: column; padding: 8px 12px 24px; }
+  #map { height: 55vh; min-height: 340px; }
+  .app-header h1 { font-size: 1.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp, .btn { transition: none; }
+  .stamp.done-gold, .stamp.done-close, .stamp.done-far { animation: none; }
+}
