@@ -51,13 +51,15 @@ export default async (req) => {
     }
 
     let description = null;
+    let mapEmbedUrl = null;
     if (courseRes.status === "fulfilled" && courseRes.value.ok) {
       const courseHtml = await courseRes.value.text();
       description = extractDescription(courseHtml);
+      mapEmbedUrl = extractMapEmbed(courseHtml);
     }
 
     return new Response(
-      JSON.stringify({ pageUrl: homeUrl, photoUrl, description }),
+      JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, photoUrl, description, mapEmbedUrl }),
       {
         status: 200,
         // Event pages change rarely — cache for 12h to keep this fast and cheap.
@@ -141,4 +143,14 @@ function stripTags(str) {
 function truncate(str, maxLen) {
   if (str.length <= maxLen) return str;
   return str.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
+}
+
+// Google My Maps embeds are added as:
+//   <iframe src="https://www.google.com/maps/d/embed?mid=XXXX&..."></iframe>
+// This URL pattern is the same across every parkrun locale, since it's a
+// fixed Google embed link rather than translated page text.
+function extractMapEmbed(html) {
+  const match = html.match(/https:\/\/(?:www\.)?google\.com\/maps\/d\/(?:u\/\d+\/)?embed\?[^"'<>\s]+/i);
+  if (!match) return null;
+  return match[0].replace(/&amp;/g, "&");
 }

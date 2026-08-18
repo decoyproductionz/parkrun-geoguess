@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>parkrun World – Daily Map Quiz</title>
+<title>parkrun Geoguess – Daily Map Quiz</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,8 @@
 
 <header class="app-header">
   <div class="badge" aria-hidden="true">5K</div>
-  <h1>parkrun World <span class="subtitle">Daily Quiz</span></h1>
-  <p class="tagline">Eight parks. One planet. Guess where.</p>
+  <h1>parkrun Geoguess <span class="subtitle">Daily Quiz</span></h1>
+  <p class="tagline">Five parkruns. One planet. Guess where.</p>
   <p class="day-label" id="day-label"></p>
 </header>
 
@@ -27,10 +27,11 @@
     <div class="stamp-trail" id="stamp-trail" aria-label="Round progress"></div>
 
     <div id="prompt-card" class="prompt-card">
-      <div class="prompt-label">Round <span id="round-number">1</span> / <span id="round-total">8</span></div>
+      <div class="prompt-label">Round <span id="round-number">1</span> / <span id="round-total">5</span></div>
       <div class="prompt-name" id="prompt-name">Loading today's parkruns…</div>
       <div class="prompt-country" id="prompt-country"></div>
       <div class="prompt-photo" id="prompt-photo"></div>
+      <div class="prompt-map" id="prompt-map"></div>
       <div class="prompt-hint" id="prompt-hint"></div>
     </div>
 
@@ -72,10 +73,10 @@
   <div class="end-card">
     <h2>Today's quiz is done! 🎉</h2>
     <p id="end-summary"></p>
-    <p class="end-note">Come back tomorrow for 8 new locations — or keep going right now.</p>
+    <p class="end-note">Come back tomorrow for 5 new locations — or keep going right now with a practice pack.</p>
     <div class="end-actions">
-      <button id="end-restart-btn" class="btn btn-secondary">Replay these 8</button>
-      <button id="end-bonus-btn" class="btn btn-primary">Play 8 more</button>
+      <button id="end-restart-btn" class="btn btn-secondary">Replay these 5</button>
+      <button id="end-bonus-btn" class="btn btn-primary">New practice pack</button>
     </div>
   </div>
 </div>

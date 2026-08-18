@@ -1,7 +1,7 @@
 // ---- parkrun World – Daily Map Quiz ----
 
 const EVENTS_URL = "https://images.parkrun.com/events.json";
-const DAILY_COUNT = 8;
+const DAILY_COUNT = 5; // number of events per daily quiz round - parkrun is 5k
 const ADULT_SERIES_ID = 1; // 2 = junior parkrun, excluded
 
 const INK_DOT = "#2B3A4A";
@@ -47,7 +47,7 @@ let streak = 0;
 let distances = [];
 let awaitingClick = true;
 let pendingGuessLatLng = null;
-let quizMode = "daily"; // "daily" | "bonus"
+let quizMode = "daily"; // "daily" | "daily"
 
 let map, guessMarker, answerMarker, guessLine;
 let locationDots = {};
@@ -86,7 +86,7 @@ async function init() {
   document.getElementById("guess-btn").addEventListener("click", confirmGuess);
   document.getElementById("skip-btn").addEventListener("click", skipRound);
   document.getElementById("end-restart-btn").addEventListener("click", () => resetProgress());
-  document.getElementById("end-bonus-btn").addEventListener("click", () => loadQueue("bonus"));
+  document.getElementById("end-practice-btn").addEventListener("click", () => loadQueue("bonus"));
 
   await loadQueue("daily");
 }
@@ -163,7 +163,7 @@ function getTodaysSeed() {
   return hashSeed(todayString());
 }
 
-function getBonusSeed() {
+function getPracticeSeed() {
   return (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
 }
 
@@ -237,7 +237,7 @@ function resetQueueDots() {
 async function loadQueue(mode) {
   quizMode = mode;
   showBuildingState(mode);
-  const seed = mode === "bonus" ? getBonusSeed() : getTodaysSeed();
+  const seed = mode === "practice" ? getPracticeSeed() : getTodaysSeed();
   queue = await buildQueueWithPhotos(seed, DAILY_COUNT);
   resetProgress();
 }
@@ -255,17 +255,18 @@ function resetProgress() {
   document.getElementById("skip-btn").textContent = "Skip";
   document.getElementById("round-total").textContent = queue.length;
   document.getElementById("day-label").textContent =
-    quizMode === "bonus" ? "Bonus round \u00b7 a fresh random 8" : "Today's set \u00b7 " + todayString();
+    quizMode === "practice" ? "`Practice pack \u00b7 a fresh random ${DAILY_COUNT}`" : "Today's set \u00b7 " + todayString();
   buildStampTrail();
   nextRound();
 }
 
 function showBuildingState(mode) {
   document.getElementById("prompt-name").textContent =
-    mode === "bonus" ? "Shuffling a fresh 8\u2026" : "Finding today's 8 parkruns\u2026";
+    mode === "practice" ? "Shuffling a fresh 5\u2026" : "Finding today's 5 parkruns\u2026";
   document.getElementById("prompt-country").textContent = "";
   document.getElementById("prompt-hint").textContent = "Checking which ones have a photo available.";
   document.getElementById("prompt-photo").innerHTML = '<div class="photo-loading">\u2026</div>';
+  document.getElementById("prompt-map").innerHTML = "";
   document.getElementById("feedback").classList.add("hidden");
   setGuessButtonEnabled(false);
   document.getElementById("skip-btn").disabled = true;
@@ -321,6 +322,10 @@ function nextRound() {
   document.getElementById("feedback").classList.add("hidden");
 
   const photoBox = document.getElementById("prompt-photo");
+  const mapBox = document.getElementById("prompt-map");
+  mapBox.innerHTML = info && info.mapEmbedUrl
+    ? `<iframe class="prompt-map-frame" src="${info.mapEmbedUrl}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Course map for this parkrun"></iframe>`
+    : '<div class="photo-empty">No course map available for this location.</div>';
   const info = currentEvent._eventInfo;
   photoBox.innerHTML = info && info.photoUrl
     ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
@@ -526,7 +531,7 @@ function clearMapMarkers() {
 function showEndScreen() {
   const avg = distances.length ? (distances.reduce((a, b) => a + b, 0) / distances.length).toFixed(0) : "–";
   const maxScore = queue.length * 1000;
-  const heading = quizMode === "bonus" ? "Bonus round done! \ud83c\udf89" : "Today's quiz is done! \ud83c\udf89";
+  const heading = quizMode === "practice" ? `Practice pack done! \ud83c\udf89` : "Today's quiz is done! \ud83c\udf89";
   document.querySelector("#end-screen h2").textContent = heading;
   document.getElementById("end-summary").innerHTML =
     `You scored <strong>${score}</strong> out of ${maxScore} possible points.<br>` +
