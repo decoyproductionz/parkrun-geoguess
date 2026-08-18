@@ -490,11 +490,12 @@ async function loadEventInfo(event) {
 
   box.innerHTML = `${descHtml}${linkHtml}`;
 }
+const EVENT_INFO_VERSION = "v2"; // bump this if event-info.js's response shape ever changes, to bust stale caches
 
-async function fetchEventInfo(ev) {
-  if (!ev.domain || !ev.slug) return null;
-  try {
-    const res = await fetch(`/api/event-info?domain=${encodeURIComponent(ev.domain)}&slug=${encodeURIComponent(ev.slug)}`);
+  async function fetchEventInfo(ev) {
+    if (!ev.domain || !ev.slug) return null;
+    try {
+      const res = await fetch(`/api/event-info?domain=${encodeURIComponent(ev.domain)}&slug=${encodeURIComponent(ev.slug)}&v=${EVENT_INFO_VERSION}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.error) return null;
