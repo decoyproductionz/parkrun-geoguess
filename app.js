@@ -1,42 +1,27 @@
-// ---- parkrun World – Daily Map Quiz ----
+// ---- parkrun Geoguess – UK & Ireland Edition ----
 
 const EVENTS_URL = "https://images.parkrun.com/events.json";
-const DAILY_COUNT = 5; // number of events per daily quiz round - parkrun is 5k
+const DAILY_COUNT = 5; // parkrun is a 5k, so five rounds fits the branding
 const ADULT_SERIES_ID = 1; // 2 = junior parkrun, excluded
+
+// Scope: only these countries' parkruns are included in the pool.
+const ALLOWED_COUNTRIES = ["United Kingdom", "Ireland"];
+
+// Distance-based scoring thresholds — tuned for a UK & Ireland-only area,
+// much smaller than the original worldwide version's scale.
+const FULL_POINTS_KM = 20;
+const ZERO_POINTS_KM = 600;
+const BULLSEYE_KM = 15;
+const VERY_CLOSE_KM = 75;
+const NOT_BAD_KM = 250;
+const STREAK_KM = 75;
+
+// Map view centered/zoomed on the UK & Ireland rather than the whole globe.
+const MAP_CENTER = [54.5, -4.5];
+const MAP_ZOOM = 5;
 
 const INK_DOT = "#2B3A4A";
 const TRAIL_GREEN = "#2F6B4F";
-
-// Maps a parkrun country "domain" (from the events.json countries block) to a
-// display name. Not exhaustive — falls back to showing the raw domain for
-// any country not listed here, so nothing breaks if parkrun adds a new one.
-const COUNTRY_NAMES = {
-  "parkrun.org.uk": "United Kingdom",
-  "parkrun.ie": "Ireland",
-  "parkrun.com.au": "Australia",
-  "parkrun.co.nz": "New Zealand",
-  "parkrun.co.za": "South Africa",
-  "parkrun.us": "United States",
-  "parkrun.ca": "Canada",
-  "parkrun.com.de": "Germany",
-  "parkrun.co.at": "Austria",
-  "parkrun.dk": "Denmark",
-  "parkrun.fi": "Finland",
-  "parkrun.fr": "France",
-  "parkrun.it": "Italy",
-  "parkrun.pl": "Poland",
-  "parkrun.lt": "Lithuania",
-  "parkrun.my": "Malaysia",
-  "parkrun.sg": "Singapore",
-  "parkrun.no": "Norway",
-  "parkrun.se": "Sweden",
-  "parkrun.com.na": "Namibia",
-  "parkrun.co.zw": "Zimbabwe",
-  "parkrun.jp": "Japan",
-  "parkrun.nl": "Netherlands",
-  "parkrun.si": "Slovenia",
-  "parkrun.ru": "Russia"
-};
 
 let allEvents = [];
 let queue = [];
@@ -72,7 +57,7 @@ async function init() {
   map = L.map("map", {
     worldCopyJump: false,
     renderer: L.canvas() // canvas renderer copes far better with 2,000+ markers than SVG
-  }).setView([20, 10], 2);
+  }).setView(MAP_CENTER, MAP_ZOOM);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
@@ -121,7 +106,8 @@ function parseEvents(raw) {
         lat, lon
       };
     })
-    .filter(ev => Number.isFinite(ev.lat) && Number.isFinite(ev.lon));
+    .filter(ev => Number.isFinite(ev.lat) && Number.isFinite(ev.lon))
+    .filter(ev => ALLOWED_COUNTRIES.includes(ev.country));
 }
 
 function todayString() {
@@ -382,11 +368,11 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 function pointsForDistance(km) {
-  // Full points inside 50km (roughly "same metro area" at world scale),
-  // tapering to 0 at 3000km+ (about a quarter of the way round the globe).
-  if (km <= 50) return 1000;
-  if (km >= 3000) return 0;
-  const t = (km - 50) / (3000 - 50);
+  // Full points inside 20km, tapering to 0 at 600km+ — rescaled for the
+  // UK & Ireland's much smaller geographic span than the worldwide version.
+  if (km <= FULL_POINTS_KM) return 1000;
+  if (km >= ZERO_POINTS_KM) return 0;
+  const t = (km - FULL_POINTS_KM) / (ZERO_POINTS_KM - FULL_POINTS_KM);
   return Math.round(1000 * (1 - t));
 }
 
@@ -418,7 +404,7 @@ function registerResult(clickLatLng) {
   markStampResult(currentIndex, km);
   pendingGuessLatLng = null;
   score += points;
-  streak = points > 0 ? streak + (km !== null && km <= 200 ? 1 : 0) : 0;
+  streak = points > 0 ? streak + (km !== null && km <= STREAK_KM ? 1 : 0) : 0;
 
   updateScoreDisplay();
   showFeedback(km, points);
@@ -439,13 +425,13 @@ function showFeedback(km, points) {
   if (km === null) {
     title = "Skipped";
     cls = "correct-far";
-  } else if (km <= 50) {
+  } else if (km <= BULLSEYE_KM) {
     title = "Bullseye! 🎯";
     cls = "correct-close";
-  } else if (km <= 300) {
+  } else if (km <= VERY_CLOSE_KM) {
     title = "Very close!";
     cls = "correct-close";
-  } else if (km <= 1000) {
+  } else if (km <= NOT_BAD_KM) {
     title = "Not bad.";
     cls = "correct-ok";
   } else {
@@ -545,7 +531,7 @@ function showEndScreen() {
     `Average distance: <strong>${avg} km</strong>.`;
   document.getElementById("end-screen").classList.remove("hidden");
   document.getElementById("skip-btn").classList.add("hidden");
-  map.setView([20, 10], 2);
+  map.setView(MAP_CENTER, MAP_ZOOM);
 }
 
 function showLoadError() {
