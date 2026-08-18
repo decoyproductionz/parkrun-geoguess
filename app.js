@@ -482,6 +482,10 @@ function showFeedback(km, points) {
 // The event's course description is shown after guessing, as a reveal.
 // The photo itself is now shown earlier (pre-guess, in the prompt card),
 // so this panel doesn't repeat it — just the description and a link.
+// The event's course description (and, if available, some approximate
+// event stats) are shown after guessing, as a reveal. The photo itself is
+// shown earlier (pre-guess, in the prompt card), so this panel doesn't
+// repeat it.
 async function loadEventInfo(event) {
   // Reuse the info already fetched while building the queue, if we have it.
   const info = event._eventInfo !== undefined ? event._eventInfo : await fetchEventInfo(event);
@@ -500,28 +504,41 @@ async function loadEventInfo(event) {
   }
 
   const descHtml = info.description ? `<p class="course-desc">${escapeHtml(info.description)}</p>` : "";
+
+  // Stats are experimental (see event-info.js) and sourced from an
+  // unofficial third-party API, so they're clearly labeled and only ever
+  // an approximation — not identical to parkrun's own "event statistics".
+  const statsHtml = info.stats ? `
+    <div class="stat-row">
+      <div class="stat-chip"><span class="stat-value">${info.stats.totalEvents ?? "\u2013"}</span><span class="stat-label">Events</span></div>
+      <div class="stat-chip"><span class="stat-value">${info.stats.avgFinishers ?? "\u2013"}</span><span class="stat-label">Avg. finishers</span></div>
+      <div class="stat-chip"><span class="stat-value">${escapeHtml(info.stats.firstEdition || "\u2013")}</span><span class="stat-label">First edition</span></div>
+    </div>
+    <div class="stat-caveat">Approximate, via an unofficial third-party source.</div>
+  ` : "";
+
   const linkHtml = info.pageUrl
     ? `<a href="${info.pageUrl}" target="_blank" rel="noopener">Visit ${escapeHtml(event.name)} parkrun's page ↗</a>`
     : "";
 
-  if (!descHtml) {
+  if (!descHtml && !statsHtml) {
     box.classList.add("empty");
-    box.innerHTML = `No course description found automatically for this one. ${linkHtml}`;
+    box.innerHTML = `No course description or stats found automatically for this one. ${linkHtml}`;
     return;
   }
 
-  box.innerHTML = `${descHtml}${linkHtml}`;
+  box.innerHTML = `${descHtml}${statsHtml}${linkHtml}`;
 }
-const EVENT_INFO_VERSION = "v4"; // bump this if event-info.js's response shape ever changes, to bust stale caches
+const EVENT_INFO_VERSION = "v6"; // bump this if event-info.js's response shape ever changes, to bust stale caches
 
   async function fetchEventInfo(ev) {
-    if (!ev.domain || !ev.slug) return null;
-    try {
-      const res = await fetch(`/api/event-info?domain=${encodeURIComponent(ev.domain)}&slug=${encodeURIComponent(ev.slug)}&v=${EVENT_INFO_VERSION}`);
+  if (!ev.domain || !ev.slug) return null;
+  try {
+    const res = await fetch(`/api/event-info?domain=${encodeURIComponent(ev.domain)}&slug=${encodeURIComponent(ev.slug)}&id=${encodeURIComponent(ev.id)}&v=${EVENT_INFO_VERSION}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.error) return null;
-    return data; // { pageUrl, photoUrl, description }
+    return data; // { pageUrl, photoUrl, description, stats }
   } catch (e) {
     return null;
   }

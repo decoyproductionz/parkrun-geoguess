@@ -357,6 +357,46 @@ body {
   color: var(--ink);
 }
 
+.stat-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.stat-chip {
+  flex: 1;
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--trail-dark);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.stat-caveat {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
 .event-info a {
   color: var(--trail-dark);
 }
