@@ -473,6 +473,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   display: block;
+  pointer-events: none; /* makes the embed non-interactive — no pan/zoom/click, behaves like a still image */
 }
 
 .prompt-map .photo-empty {
