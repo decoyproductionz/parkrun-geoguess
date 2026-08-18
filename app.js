@@ -309,9 +309,9 @@ function markStampResult(index, km) {
   const s = document.getElementById("stamp-" + index);
   if (!s) return;
   s.classList.remove("pending", "active");
-  if (km === null || km > 300) {
+  if (km === null || km > VERY_CLOSE_KM) {
     s.classList.add("done-far");
-  } else if (km <= 50) {
+  } else if (km <= BULLSEYE_KM) {
     s.classList.add("done-gold");
   } else {
     s.classList.add("done-close");
