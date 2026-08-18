@@ -1,9 +1,11 @@
 // Fetches a parkrun event's own pages server-side (not subject to the
 // browser CORS restrictions that block the app from reading parkrun's
-// website pages directly) and extracts two things:
+// website pages directly) and extracts:
 //   1. The event's header photo (from its homepage) — typically a shot of
 //      participants at that parkrun, e.g. www.parkrun.org.uk/northampton/
 //   2. The course description paragraph (from its /course/ page)
+//   3. Event stats — first edition date, average weekly finishers, and
+//      average finish time (from its /results/eventhistory/ page)
 //
 // Usage: /api/event-info?domain=www.parkrun.org.uk&slug=northampton
 
@@ -13,6 +15,17 @@ const CORS_HEADERS = {
 };
 
 const USER_AGENT = "Mozilla/5.0 (compatible; parkrun-world-quiz/1.0)";
+const FETCH_TIMEOUT_MS = 6000; // don't let one slow/blocked page sink the whole response
+
+async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { headers: { "User-Agent": USER_AGENT }, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export default async (req) => {
   const url = new URL(req.url);
@@ -39,44 +52,47 @@ export default async (req) => {
   const courseUrl = `https://${domain}/${encodeURIComponent(slug)}/course/`;
   const historyUrl = `https://${domain}/${encodeURIComponent(slug)}/results/eventhistory/`;
 
-  try {
-    const [homeRes, courseRes, historyRes] = await Promise.allSettled([
-      fetch(homeUrl, { headers: { "User-Agent": USER_AGENT } }),
-      fetch(courseUrl, { headers: { "User-Agent": USER_AGENT } }),
-      fetch(historyUrl, { headers: { "User-Agent": USER_AGENT } })
-    ]);
+  const [homeRes, courseRes, historyRes] = await Promise.allSettled([
+    fetchWithTimeout(homeUrl),
+    fetchWithTimeout(courseUrl),
+    fetchWithTimeout(historyUrl)
+  ]);
 
-    let photoUrl = null;
+  // Each of these three is independent and wrapped in its own try/catch —
+  // a problem extracting one (especially stats, the least verified) must
+  // never wipe out the other two, which is what was happening before.
+  let photoUrl = null;
+  try {
     if (homeRes.status === "fulfilled" && homeRes.value.ok) {
       const homeHtml = await homeRes.value.text();
       photoUrl = extractHeaderPhoto(homeHtml);
     }
+  } catch (e) { /* leave photoUrl null */ }
 
-    let description = null;
+  let description = null;
+  try {
     if (courseRes.status === "fulfilled" && courseRes.value.ok) {
       const courseHtml = await courseRes.value.text();
       description = extractDescription(courseHtml);
     }
+  } catch (e) { /* leave description null */ }
 
-    let stats = null;
+  let stats = null;
+  try {
     if (historyRes.status === "fulfilled" && historyRes.value.ok) {
       const historyHtml = await historyRes.value.text();
       stats = extractEventStats(historyHtml);
     }
+  } catch (e) { /* leave stats null */ }
 
-    return new Response(
-      JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, historyUrl, photoUrl, description, stats }),
-      {
-        status: 200,
-        headers: { ...CORS_HEADERS, "Cache-Control": "public, max-age=43200" }
-      }
-    );
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: String(err), pageUrl: homeUrl }),
-      { status: 502, headers: CORS_HEADERS }
-    );
-  }
+  return new Response(
+    JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, historyUrl, photoUrl, description, stats }),
+    {
+      status: 200,
+      // Event pages change rarely — cache for 12h to keep this fast and cheap.
+      headers: { ...CORS_HEADERS, "Cache-Control": "public, max-age=43200" }
+    }
+  );
 };
 
 export const config = { path: "/api/event-info" };
@@ -150,19 +166,25 @@ function truncate(str, maxLen) {
   return str.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
 }
 
-// Google My Maps embeds are added as:
-//   <iframe src="https://www.google.com/maps/d/embed?mid=XXXX&..."></iframe>
-// This URL pattern is the same across every parkrun locale, since it's a
-// fixed Google embed link rather than translated page text.
 // Best-effort: parkrun's per-event history page lists one row per weekly
 // occurrence, typically with an event number, a date, and a finisher
-// count (and sometimes an average time). From that we derive first
-// edition, average finishers, and average time. I couldn't verify this
-// page's actual layout myself — this parses defensively via generic
-// patterns rather than assuming specific columns, and returns null
-// rather than guessing wrong if nothing matches.
+// count (and sometimes an average time). From that we derive:
+//   - first edition: the date of the earliest event number
+//   - average finishers: mean of the finisher counts across all rows
+//   - average time: mean of any time-shaped values found, if present
+//
+// I couldn't verify this page's actual layout myself (see README) — this
+// parses defensively via generic patterns (a numeric first cell, a
+// date-shaped cell, a small-integer cell, a MM:SS-shaped cell) rather than
+// assuming specific column positions, and returns null rather than
+// guessing wrong if nothing matches. Very likely needs real-world
+// adjustment — see the extractEventStats caveat in the README.
 function extractEventStats(html) {
-  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+  // Cap the amount of HTML scanned — a blocked/challenge page can return
+  // unexpected content, and there's no reason to regex-scan more than a
+  // generous chunk of a normal results table.
+  const scanText = html.length > 500000 ? html.slice(0, 500000) : html;
+  const rows = [...scanText.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
   const events = [];
 
   for (const rowMatch of rows) {
@@ -170,7 +192,7 @@ function extractEventStats(html) {
     if (cells.length < 3) continue;
 
     const eventNum = parseInt((cells[0] || "").replace(/[^\d]/g, ""), 10);
-    if (!Number.isFinite(eventNum)) continue;
+    if (!Number.isFinite(eventNum)) continue; // skip header rows / non-data rows
 
     const dateCell = cells.find(c => /\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}/.test(c));
     const finisherCell = cells.find(c => /^\d{1,4}$/.test(c.trim()));
@@ -199,7 +221,12 @@ function extractEventStats(html) {
     ? secondsToTimeStr(Math.round(timeSeconds.reduce((a, b) => a + b, 0) / timeSeconds.length))
     : null;
 
-  return { firstEdition: first.date, totalEvents: events.length, avgFinishers, avgTime };
+  return {
+    firstEdition: first.date,
+    totalEvents: events.length,
+    avgFinishers,
+    avgTime
+  };
 }
 
 function parseTimeToSeconds(str) {

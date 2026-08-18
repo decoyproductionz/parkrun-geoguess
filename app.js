@@ -488,7 +488,7 @@ async function loadEventInfo(event) {
 
   box.innerHTML = `${descHtml}${linkHtml}`;
 }
-const EVENT_INFO_VERSION = "v3"; // bump this if event-info.js's response shape ever changes, to bust stale caches
+const EVENT_INFO_VERSION = "v4"; // bump this if event-info.js's response shape ever changes, to bust stale caches
 
   async function fetchEventInfo(ev) {
     if (!ev.domain || !ev.slug) return null;
