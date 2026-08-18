@@ -168,14 +168,15 @@ function getBonusSeed() {
 }
 
 // Builds a queue of exactly `count` events that each have a confirmed
-// Wikipedia photo, working through a seeded shuffle of the full location
-// list in small concurrent batches until enough photo-bearing events are
-// found. Falls back to padding with photo-less events only in the
-// (extremely unlikely) case the whole list is exhausted first.
+// photo (now sourced from parkrun's own event pages via our event-info
+// function, not Wikipedia), working through a seeded shuffle of the full
+// location list in small concurrent batches until enough photo-bearing
+// events are found. Falls back to padding with photo-less events only in
+// the (extremely unlikely) case the whole list is exhausted first.
 async function buildQueueWithPhotos(seed, count) {
   const shuffled = seededShuffle(allEvents, seed);
-  const maxCandidates = Math.min(shuffled.length, 80);
-  const concurrency = 6;
+  const maxCandidates = Math.min(shuffled.length, 60);
+  const concurrency = 4; // each check now costs 2 upstream page fetches via our function, so keep this gentle
   const result = [];
   let i = 0;
 
@@ -183,13 +184,13 @@ async function buildQueueWithPhotos(seed, count) {
     const batch = shuffled.slice(i, i + concurrency);
     i += concurrency;
     const settled = await Promise.all(batch.map(async ev => {
-      const summary = await tryFindPhoto(ev);
-      return { ev, summary };
+      const info = await fetchEventInfo(ev);
+      return { ev, info };
     }));
-    for (const { ev, summary } of settled) {
+    for (const { ev, info } of settled) {
       if (result.length >= count) break;
-      if (summary && summary.thumbnail) {
-        ev._wikiSummary = summary;
+      if (info && info.photoUrl) {
+        ev._eventInfo = info;
         result.push(ev);
       }
     }
@@ -199,46 +200,12 @@ async function buildQueueWithPhotos(seed, count) {
     for (const ev of shuffled) {
       if (result.length >= count) break;
       if (result.includes(ev)) continue;
-      if (ev._wikiSummary === undefined) ev._wikiSummary = await tryFindPhoto(ev);
+      if (ev._eventInfo === undefined) ev._eventInfo = await fetchEventInfo(ev);
       result.push(ev);
     }
   }
 
   return result;
-}
-
-async function tryFindPhoto(ev) {
-  const candidates = [ev.location, ev.shortName, ev.name].filter(Boolean);
-  for (const candidate of candidates) {
-    try {
-      const summary = await fetchWikiSummary(candidate);
-      if (summary) return summary;
-    } catch (e) {
-      // try next candidate
-    }
-  }
-  return null;
-}
-
-async function fetchWikiSummary(title) {
-  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(title)}&format=json&origin=*&srlimit=1`;
-  const searchRes = await fetch(searchUrl);
-  const searchData = await searchRes.json();
-  const hit = searchData.query && searchData.query.search && searchData.query.search[0];
-  if (!hit) return null;
-
-  const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`;
-  const summaryRes = await fetch(summaryUrl);
-  if (!summaryRes.ok) return null;
-  const summary = await summaryRes.json();
-  if (summary.type === "disambiguation") return null;
-
-  return {
-    title: summary.title,
-    extract: summary.extract,
-    thumbnail: summary.thumbnail && summary.thumbnail.source,
-    pageUrl: summary.content_urls && summary.content_urls.desktop && summary.content_urls.desktop.page
-  };
 }
 
 function placeLocationDots() {
@@ -354,10 +321,10 @@ function nextRound() {
   document.getElementById("feedback").classList.add("hidden");
 
   const photoBox = document.getElementById("prompt-photo");
-  const summary = currentEvent._wikiSummary;
-  photoBox.innerHTML = summary && summary.thumbnail
-    ? `<img src="${summary.thumbnail}" alt="Photo hint for this parkrun">`
-    : '<div class="photo-empty">No photo available for this location.</div>';
+  const info = currentEvent._eventInfo;
+  photoBox.innerHTML = info && info.photoUrl
+    ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
+    : '<div class="photo-empty">No photo available for this location.</div>'; 
 }
 
 function skipRound() {
@@ -444,7 +411,6 @@ function registerResult(clickLatLng) {
 
   updateScoreDisplay();
   showFeedback(km, points);
-  loadEnrichment(currentEvent);
   loadEventInfo(currentEvent);
 
   const bounds = clickLatLng ? L.latLngBounds([clickLatLng, trueLatLng]) : L.latLngBounds([trueLatLng, trueLatLng]);
@@ -482,17 +448,16 @@ function showFeedback(km, points) {
     <div class="fb-title">${title}</div>
     <div>${currentEvent.name} parkrun is in ${currentEvent.location ? currentEvent.location + ", " : ""}${currentEvent.country}.${distText}</div>
     <div class="fb-points">+${points} points</div>
-    <div class="enrichment loading" id="enrichment-box">Looking up a photo…</div>
-    <div class="event-info loading" id="event-info-box">Looking up a photo from this parkrun…</div>
-  `;
+        <div class="event-info loading" id="event-info-box">Looking up the course description…</div>`;
 }
 
-// The event's header photo & course description are shown only after
-// guessing (a reveal, not a hint) — kept consistent with how this panel
-// worked before, and the photo (of participants, not the venue) isn't
-// generally a giveaway anyway.
+// The event's course description is shown after guessing, as a reveal.
+// The photo itself is now shown earlier (pre-guess, in the prompt card),
+// so this panel doesn't repeat it — just the description and a link.
 async function loadEventInfo(event) {
-  const info = await fetchEventInfo(event);
+  // Reuse the info already fetched while building the queue, if we have it.
+  const info = event._eventInfo !== undefined ? event._eventInfo : await fetchEventInfo(event);
+  event._eventInfo = info;
   if (currentEvent !== event) return; // player has already moved to a new round; discard
 
   const box = document.getElementById("event-info-box");
@@ -506,21 +471,18 @@ async function loadEventInfo(event) {
     return;
   }
 
-  const photoHtml = info.photoUrl
-    ? `<img class="event-photo" src="${info.photoUrl}" alt="Participants at ${escapeHtml(event.name)} parkrun">`
-    : "";
   const descHtml = info.description ? `<p class="course-desc">${escapeHtml(info.description)}</p>` : "";
   const linkHtml = info.pageUrl
     ? `<a href="${info.pageUrl}" target="_blank" rel="noopener">Visit ${escapeHtml(event.name)} parkrun's page ↗</a>`
     : "";
 
-  if (!photoHtml && !descHtml) {
+  if (!descHtml) {
     box.classList.add("empty");
-    box.innerHTML = `Photo & description not found automatically for this one. ${linkHtml}`;
+    box.innerHTML = `No course description found automatically for this one. ${linkHtml}`;
     return;
   }
 
-  box.innerHTML = `${photoHtml}${descHtml}${linkHtml}`;
+  box.innerHTML = `${descHtml}${linkHtml}`;
 }
 
 async function fetchEventInfo(ev) {
@@ -534,56 +496,6 @@ async function fetchEventInfo(ev) {
   } catch (e) {
     return null;
   }
-}
-
-async function loadEnrichment(event) {
-  const box = document.getElementById("enrichment-box");
-  if (!box) return; // user may have moved on already
-
-  // Reuse the result already fetched for the pre-guess photo hint, if we have it.
-  if (event._wikiSummary !== undefined) {
-    if (event._wikiSummary) {
-      renderEnrichment(box, event._wikiSummary);
-    } else {
-      box.classList.remove("loading");
-      box.classList.add("empty");
-      box.textContent = "No Wikipedia entry found for this location.";
-    }
-    return;
-  }
-
-  const candidates = [event.location, event.shortName, event.name].filter(Boolean);
-
-  for (const candidate of candidates) {
-    try {
-      const summary = await fetchWikiSummary(candidate);
-      if (summary) {
-        event._wikiSummary = summary;
-        renderEnrichment(box, summary);
-        return;
-      }
-    } catch (e) {
-      // try next candidate
-    }
-  }
-
-  event._wikiSummary = null;
-  box.classList.remove("loading");
-  box.classList.add("empty");
-  box.textContent = "No Wikipedia entry found for this location.";
-}
-
-function renderEnrichment(box, summary) {
-  box.classList.remove("loading", "empty");
-  const img = summary.thumbnail ? `<img src="${summary.thumbnail}" alt="${escapeHtml(summary.title)}">` : "";
-  const extract = summary.extract ? truncate(summary.extract, 220) : "";
-  const link = summary.pageUrl ? ` <a href="${summary.pageUrl}" target="_blank" rel="noopener">Wikipedia ↗</a>` : "";
-  box.innerHTML = `${img}<div class="enrichment-text"><strong>${escapeHtml(summary.title)}</strong><br>${escapeHtml(extract)}${link}</div>`;
-}
-
-function truncate(str, maxLen) {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
 }
 
 function escapeHtml(str) {

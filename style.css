@@ -352,64 +352,6 @@ body {
   font-weight: 600;
 }
 
-.enrichment {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.enrichment img {
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background: var(--parchment);
-  border: 1px solid var(--border);
-}
-
-.enrichment-text {
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
-.enrichment-text a {
-  color: var(--trail-dark);
-}
-
-.enrichment.loading, .enrichment.empty {
-  font-size: 0.8rem;
-  color: var(--muted);
-  font-style: italic;
-}
-
-.event-info {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.event-info.loading, .event-info.empty {
-  font-style: italic;
-}
-
-.event-photo {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 8px;
-  display: block;
-}
-
 .course-desc {
   margin: 0 0 6px;
   color: var(--ink);
