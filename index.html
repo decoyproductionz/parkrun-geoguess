@@ -61,7 +61,21 @@
   <p class="day-label" id="day-label"></p>
 </header>
 
-<main class="app-main">
+<div id="start-screen" class="start-screen">
+  <div class="start-card">
+    <h2>How would you like to play?</h2>
+    <div class="start-actions">
+      <button id="start-daily-btn" class="btn btn-primary">Daily Challenge</button>
+      <button id="start-random-btn" class="btn btn-secondary">Random Pack</button>
+    </div>
+    <p class="start-note">
+      <strong>Daily Challenge:</strong> the same 5 parkruns for everyone today, once per day.<br>
+      <strong>Random Pack:</strong> a fresh shuffled 5 — play as many packs as you like.
+    </p>
+  </div>
+</div>
+
+<main class="app-main hidden">
 
   <section class="quiz-panel">
     <div class="stamp-trail" id="stamp-trail" aria-label="Round progress"></div>
@@ -103,7 +117,7 @@
 
 </main>
 
-<footer class="bottom-bar">
+<footer class="bottom-bar hidden">
   <span class="bottom-bar-label">Total score</span>
   <span class="bottom-bar-value" id="bottom-total">0</span>
 </footer>
@@ -117,6 +131,7 @@
       <button id="end-restart-btn" class="btn btn-secondary">Replay these 5</button>
       <button id="end-practice-btn" class="btn btn-primary">New practice pack</button>
     </div>
+    <button id="back-to-start-btn" class="link-btn">Choose a different mode</button>
   </div>
 </div>
 

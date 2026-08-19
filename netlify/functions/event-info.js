@@ -4,9 +4,18 @@
 //   1. The event's header photo (from its homepage) — typically a shot of
 //      participants at that parkrun, e.g. www.parkrun.org.uk/northampton/
 //   2. The course description paragraph (from its /course/ page)
-//   3. Event stats (experimental — see below)
 //
-// Usage: /api/event-info?domain=www.parkrun.org.uk&slug=northampton&id=2761
+// Note: event stats (first edition, finishers, etc.) were previously
+// attempted here via three different approaches — scraping the results
+// history page directly (blocked by anti-bot protection), reading the
+// homepage's stats widget server-side (it's JavaScript-rendered, so a
+// server-side fetch never sees it), and calling a third-party API
+// (unreachable/non-functional when tested). All three are documented in
+// the project README. Real stats are instead sourced via an occasional
+// offline scrape using a real browser — see scrape_event_stats.py and
+// event-stats.json, loaded directly by the app, not through this function.
+//
+// Usage: /api/event-info?domain=www.parkrun.org.uk&slug=northampton
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +24,6 @@ const CORS_HEADERS = {
 
 const USER_AGENT = "Mozilla/5.0 (compatible; parkrun-world-quiz/1.0)";
 const FETCH_TIMEOUT_MS = 6000; // don't let one slow/blocked page sink the whole response
-const THIRD_PARTY_TIMEOUT_MS = 5000;
 
 async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -31,7 +39,6 @@ export default async (req) => {
   const url = new URL(req.url);
   const domain = url.searchParams.get("domain");
   const slug = url.searchParams.get("slug");
-  const id = url.searchParams.get("id"); // parkrun's own numeric event ID, optional — only needed for stats
 
   if (!domain || !slug) {
     return new Response(
@@ -73,38 +80,8 @@ export default async (req) => {
     }
   } catch (e) { /* leave description null */ }
 
-  // ---- Experimental: event stats via a third-party API ----
-  // parkrun's own site doesn't give us this (see the two comments below),
-  // so this calls an unofficial, independently-hosted API
-  // (parkrun-api.rggs.xyz, github.com/BadgerHobbs/Parkrun-API-Python)
-  // that scrapes parkrun's results tables on its own server. This is a
-  // real external dependency outside anyone's control — it could go
-  // offline, change its response shape, or disappear entirely with no
-  // warning. It's wrapped independently so that if it fails, photo and
-  // description are completely unaffected.
-  //
-  // What we can honestly derive from its /history endpoint: event count,
-  // average weekly finishers, and first edition date. We can't get
-  // "Finishers" (unique participants), "Volunteers" (unique), "PBs", or
-  // "Groups" from this endpoint — those need per-runner data this
-  // endpoint doesn't expose, so the app is explicit that these three
-  // numbers are an approximation, not identical to parkrun's own count.
-  let stats = null;
-  if (id) {
-    try {
-      const historyRes = await fetchWithTimeout(
-        `https://parkrun-api.rggs.xyz/v1/events/${encodeURIComponent(id)}/history`,
-        THIRD_PARTY_TIMEOUT_MS
-      );
-      if (historyRes.ok) {
-        const history = await historyRes.json();
-        stats = deriveStatsFromHistory(history);
-      }
-    } catch (e) { /* third-party API unreachable/down — leave stats null */ }
-  }
-
   return new Response(
-    JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, photoUrl, description, stats }),
+    JSON.stringify({ pageUrl: homeUrl, coursePageUrl: courseUrl, photoUrl, description }),
     {
       status: 200,
       // Event pages change rarely — cache for 12h to keep this fast and cheap.
@@ -166,41 +143,6 @@ function extractDescription(html) {
     }
   }
   return null;
-}
-
-// The third-party API's /history endpoint returns one entry per weekly
-// occurrence, e.g. { eventNumber, date (DD/MM/YYYY), finishers, volunteers,
-// male, female, maleTime, femaleTime }. We derive event count, average
-// finishers, and first edition date from this — see the caveat above
-// about what this can't tell us.
-function deriveStatsFromHistory(history) {
-  if (!Array.isArray(history) || history.length === 0) return null;
-
-  const finisherCounts = history
-    .map(h => parseInt(h.finishers, 10))
-    .filter(n => Number.isFinite(n));
-  const avgFinishers = finisherCounts.length
-    ? Math.round(finisherCounts.reduce((a, b) => a + b, 0) / finisherCounts.length)
-    : null;
-
-  const parsedDates = history
-    .map(h => h.date)
-    .filter(Boolean)
-    .map(d => {
-      const parts = d.split("/").map(Number); // DD/MM/YYYY per documented format
-      if (parts.length !== 3 || parts.some(isNaN)) return null;
-      const [day, month, year] = parts;
-      return { raw: d, time: new Date(year, month - 1, day).getTime() };
-    })
-    .filter(Boolean);
-
-  let firstEdition = null;
-  if (parsedDates.length) {
-    parsedDates.sort((a, b) => a.time - b.time);
-    firstEdition = parsedDates[0].raw;
-  }
-
-  return { totalEvents: history.length, avgFinishers, firstEdition };
 }
 
 function stripTags(str) {
