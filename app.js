@@ -314,6 +314,7 @@ function showBuildingState(mode) {
   document.getElementById("prompt-country").textContent = "";
   document.getElementById("prompt-hint").textContent = "Checking which ones have a photo available.";
   document.getElementById("prompt-photo").innerHTML = '<div class="photo-loading">\u2026</div>';
+  document.getElementById("prompt-stats").innerHTML = "";
   document.getElementById("feedback").classList.add("hidden");
   setGuessButtonEnabled(false);
   document.getElementById("skip-btn").disabled = true;
@@ -374,6 +375,44 @@ function nextRound() {
   photoBox.innerHTML = info && info.photoUrl
     ? `<img src="${info.photoUrl}" alt="Photo hint for this parkrun">`
     : '<div class="photo-empty">No photo available for this location.</div>';
+
+  const statsBox = document.getElementById("prompt-stats");
+  statsBox.innerHTML = renderStatsHtml(eventStats[currentEvent.slug]);
+}
+
+// Renders the three clue stats (Events, Avg. finishers, Avg. time) from
+// the optional static event-stats.json, if an entry exists for this
+// event. "Avg. finishers" is computed as Finishes ÷ Events (total
+// completions divided by number of occurrences) rather than the raw
+// "Finishers" figure from parkrun's page, since that raw figure counts
+// each unique person once regardless of how many times they've run —
+// dividing that by Events would understate typical weekly turnout.
+function renderStatsHtml(rawStats) {
+  if (!rawStats) return '<div class="photo-empty">No stats available for this location.</div>';
+
+  const events = parseStatNumber(rawStats.events);
+  const finishes = parseStatNumber(rawStats.finishes);
+  const avgFinishers = (events && finishes) ? Math.round(finishes / events) : null;
+  const avgTime = formatAvgTime(rawStats.avgTime);
+
+  return `
+    <div class="stat-row">
+      <div class="stat-chip"><span class="stat-value">${rawStats.events ? escapeHtml(rawStats.events) : "\u2013"}</span><span class="stat-label">Events</span></div>
+      <div class="stat-chip"><span class="stat-value">${avgFinishers ?? "\u2013"}</span><span class="stat-label">Avg. finishers</span></div>
+      <div class="stat-chip"><span class="stat-value">${avgTime ? escapeHtml(avgTime) : "\u2013"}</span><span class="stat-label">Avg. time</span></div>
+    </div>
+  `;
+}
+
+function parseStatNumber(str) {
+  if (!str) return null;
+  const n = parseInt(String(str).replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatAvgTime(str) {
+  if (!str) return null;
+  return String(str).replace(/^00:/, ""); // drop a redundant leading "00:" hours segment, if present
 }
 
 function skipRound() {
@@ -518,26 +557,17 @@ async function loadEventInfo(event) {
 
   const descHtml = info.description ? `<p class="course-desc">${escapeHtml(info.description)}</p>` : "";
 
-  const stats = eventStats[event.slug];
-  const statsHtml = stats ? `
-    <div class="stat-row">
-      ${stats.events ? `<div class="stat-chip"><span class="stat-value">${escapeHtml(stats.events)}</span><span class="stat-label">Events</span></div>` : ""}
-      ${stats.finishers ? `<div class="stat-chip"><span class="stat-value">${escapeHtml(stats.finishers)}</span><span class="stat-label">Finishers</span></div>` : ""}
-      ${stats.avgTime ? `<div class="stat-chip"><span class="stat-value">${escapeHtml(stats.avgTime)}</span><span class="stat-label">Avg. time</span></div>` : ""}
-    </div>
-  ` : "";
-
   const linkHtml = info.pageUrl
     ? `<a href="${info.pageUrl}" target="_blank" rel="noopener">Visit ${escapeHtml(event.name)} parkrun's page ↗</a>`
     : "";
 
-  if (!descHtml && !statsHtml) {
+  if (!descHtml) {
     box.classList.add("empty");
     box.innerHTML = `No course description found automatically for this one. ${linkHtml}`;
     return;
   }
 
-  box.innerHTML = `${descHtml}${statsHtml}${linkHtml}`;
+  box.innerHTML = `${descHtml}${linkHtml}`;
 }
 
 const EVENT_INFO_VERSION = "v8"; // bump this whenever event-info.js's response shape or behavior changes, to bust stale caches

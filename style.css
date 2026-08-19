@@ -286,6 +286,17 @@ body {
   padding: 14px 0;
 }
 
+.prompt-stats {
+  margin-top: 14px;
+}
+
+.prompt-stats .photo-empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+  padding: 6px 0;
+}
+
 /* ---------- Score row ---------- */
 
 .score-row {
