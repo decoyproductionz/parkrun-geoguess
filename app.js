@@ -355,6 +355,7 @@ function nextRound() {
   awaitingClick = true;
   pendingGuessLatLng = null;
   setGuessButtonEnabled(false);
+  document.querySelector(".app-main").classList.remove("answered"); // fresh round: no empty space above the photo
 
   if (currentIndex >= queue.length) {
     showEndScreen();
@@ -466,6 +467,7 @@ function pointsForDistance(km) {
 function registerResult(clickLatLng) {
   awaitingClick = false;
   setGuessButtonEnabled(false);
+  document.querySelector(".app-main").classList.add("answered"); // reveals the map-first layout on mobile
 
   const trueLatLng = L.latLng(currentEvent.lat, currentEvent.lon);
   answerMarker = L.marker(trueLatLng, { icon: greenIcon() }).addTo(map);

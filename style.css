@@ -591,6 +591,7 @@ body {
 @media (max-width: 720px) {
   .app-main { flex-direction: column; padding: 8px 12px 24px; }
   .map-panel { max-width: none; }
+  .app-main.answered .map-panel { order: -1; } /* only after guessing — map (with the result) jumps above the photo/facts panel; before guessing, no empty space above the photo */
   #map { height: 38vh; min-height: 260px; }
   .prompt-photo img { max-height: 240px; }
   .app-header h1 { font-size: 1.5rem; }
