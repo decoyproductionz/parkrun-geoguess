@@ -529,10 +529,10 @@ function showFeedback(km, points) {
   el.classList.add(cls);
   const distText = km === null ? "" : `<br>Distance: <strong>${km.toFixed(0)} km</strong>`;
   el.innerHTML = `
+    <div class="event-info loading" id="event-info-box">Looking up the course description…</div>
     <div class="fb-title">${title}</div>
     <div>${currentEvent.name} parkrun is in ${currentEvent.location ? currentEvent.location + ", " : ""}${currentEvent.country}.${distText}</div>
     <div class="fb-points">+${points} points</div>
-    <div class="event-info loading" id="event-info-box">Looking up the course description…</div>
   `;
 }
 

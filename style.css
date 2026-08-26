@@ -386,6 +386,29 @@ body {
 }
 .link-btn:hover { color: var(--trail-dark); }
 
+/* Guess is the primary action every round — make it dominate visually.
+   Skip is a rare/secondary action, so it's demoted to a plain text link. */
+#guess-btn {
+  flex: 3;
+  padding: 18px;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 14px rgba(47,107,79,0.32);
+}
+
+#skip-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  padding: 8px;
+}
+#skip-btn:hover { color: var(--trail-dark); opacity: 1; }
+#skip-btn:disabled { text-decoration: none; }
+
 /* ---------- Feedback & enrichment ---------- */
 
 .feedback {
@@ -418,6 +441,23 @@ body {
 .course-desc {
   margin: 0 0 6px;
   color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.event-info {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.event-info.loading,
+.event-info.empty {
+  font-style: italic;
 }
 
 .stat-row {
@@ -597,5 +637,30 @@ body {
     left: 12px;
     right: 12px;
     max-width: none;
+  }
+}
+
+.bmc-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 76px;
+  background: var(--ember);
+  color: var(--card);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(184,84,29,0.35);
+  z-index: 950;
+  transition: opacity 0.15s ease;
+}
+.bmc-btn:hover { opacity: 0.88; }
+
+@media (max-width: 720px) {
+  .bmc-btn {
+    right: 12px;
+    bottom: 150px;
   }
 }
